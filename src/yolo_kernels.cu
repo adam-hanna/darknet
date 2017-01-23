@@ -14,7 +14,7 @@ extern "C" {
 }
 
 /* Change class number here */
-#define CLS_NUM 2
+#define CLS_NUM 7
 
 #ifdef OPENCV
 #include "opencv2/highgui/highgui.hpp"
@@ -53,7 +53,7 @@ if(step == 0)
     w = frame.width;
     h = frame.height;
     c = frame.nChannels;
-    depth= frame.depth; 
+    depth= frame.depth;
     step = frame.widthStep;
 }
 
@@ -85,8 +85,8 @@ void *detect_in_thread(void *ptr)
         cv::Mat outputMat = cv::cvarrToMat(outputIpl, true);
         /*
         cvNamedWindow("image", CV_WINDOW_AUTOSIZE);
-        cvShowImage("image", outputIpl); 
-        cvWaitKey(1);  
+        cvShowImage("image", outputIpl);
+        cvWaitKey(1);
         */
         cvReleaseImage(&outputIpl);
         cap_out << outputMat;
@@ -110,12 +110,12 @@ extern "C" void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam
 
 if(cam_index != -1)
 {
-    MODE = 0; 
+    MODE = 0;
     cv::VideoCapture cam(cam_index);
     cap = cam;
     if(!cap.isOpened()) error("Couldn't connect to webcam.\n");
 }
-else 
+else
 {
     MODE = 1;
     printf("Video File name is: %s\n", videofile);
@@ -128,7 +128,7 @@ else
     if(!outputVideo.isOpened()) error("Couldn't write video file.\n");
     cap_out = outputVideo;
 }
- 
+
     detection_layer l = net.layers[net.n-1];
     int j;
 

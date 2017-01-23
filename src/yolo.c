@@ -5,24 +5,29 @@
 #include "parser.h"
 #include "box.h"
 
+#include <string.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <errno.h>
+
 #ifdef OPENCV
 #include "opencv2/highgui/highgui_c.h"
 #endif
 
 /* Change class number here */
-#define CLASSNUM 2
+#define CLASSNUM 7
 
 /* Change class names here */
-char *voc_names[] = {"stopsign", "yeildsign"};
+char *voc_names[] = {"ALB", "BET", "DOL", "LAG", "OTHER", "SHARK", "YFT"};
 image voc_labels[CLASSNUM];
 
 void train_yolo(char *cfgfile, char *weightfile)
 {
     /* Change training folders here */
-    char *train_images = "BBoxLabelTool/train.txt";
+    char *train_images = "/home/adam/Desktop/machineLearning/guanghan/darknet/data/kaggle/fisheries/train.txt";
 
     /* Change output weight folders here */
-    char *backup_directory = "/u03/Guanghan/dev/darknet-master/backup/";
+    char *backup_directory = "/home/adam/Desktop/machineLearning/guanghan/darknet/backup/";
 
     srand(time(0));
     data_seed = time(0);
@@ -317,7 +322,7 @@ void validate_yolo_recall(char *cfgfile, char *weightfile)
     }
 }
 
-void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
+void test_yolofile(char *cfgfile, char *weightfile, char *filename, float thresh)
 {
 
     network net = parse_network_cfg(cfgfile);
@@ -365,6 +370,110 @@ void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
 #endif
         if (filename) break;
     }
+}
+
+// thanks!
+// http://stackoverflow.com/q/11736060/3512709
+void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
+{
+    network net = parse_network_cfg(cfgfile);
+    if(weightfile){
+        load_weights(&net, weightfile);
+    }
+    detection_layer l = net.layers[net.n-1];
+    set_batch_network(&net, 1);
+    srand(2222222);
+    char buff[256];
+    char *input = buff;
+    int j;
+    float nms=.5;
+    box *boxes = calloc(l.side*l.side*l.n, sizeof(box));
+    float **probs = calloc(l.side*l.side*l.n, sizeof(float *));
+    for(j = 0; j < l.side*l.side*l.n; ++j) probs[j] = calloc(l.classes, sizeof(float *));
+
+    DIR* FD;
+    struct dirent* in_file;
+    FILE *results_file;
+
+    /* Open results file for writing */
+    results_file = fopen(strncpy(input, "bulkResults.csv", 256), "wb");
+    //results_file = fopen("bulkResults.csv", "wb");
+    if (results_file == NULL)
+    {
+        fprintf(stderr, "Error : Failed to open results_file @ %s - %s\n", strncpy(input, "bulkResults.csv", 256), strerror(errno));
+
+        return;
+    }
+    printf("Opened results file\n");
+    // write the headers to the results file
+    fputs("filename", results_file);
+    for(j = 0; j < CLASSNUM; ++j)
+    {
+      fprintf(results_file, ",%s", voc_names[j]);
+    }
+    fputs("\n", results_file);
+
+    /* Scanning the in directory */
+   if (NULL == (FD = opendir (dir)))
+   {
+       fprintf(stderr, "Error : Failed to open input directory: %s\n", dir);
+       fclose(results_file);
+
+       return;
+   }
+
+    while ((in_file = readdir(FD))){
+        /* On linux/Unix we don't want current and parent directories
+         * If you're on Windows machine remove this two lines
+         */
+        printf("File name: %s\n", in_file->d_name);
+        if (!strcmp (in_file->d_name, "."))
+            continue;
+        if (!strcmp (in_file->d_name, ".."))
+            continue;
+
+        char buff2[256];
+        char *input2 = buff2;
+        char myFile[256] = "";
+        strcat(myFile, dir);
+        strcat(myFile, in_file->d_name);
+        strncpy(input2, myFile, 256);
+
+        image im = load_image_color(input2,0,0);
+        image sized = resize_image(im, net.w, net.h);
+        float *X = sized.data;
+        float *predictions = network_predict(net, X);
+        // printf("%s: Predicted in %f seconds.\n", input2, sec(clock()-time));
+        convert_yolo_detections(predictions, l.classes, l.n, l.sqrt, l.side, 1, 1, thresh, probs, boxes, 0);
+        if (nms) do_nms_sort(boxes, probs, l.side*l.side*l.n, l.classes, nms);
+
+        for(int i = 0; i < l.side*l.side*l.n; ++i){
+          int class = max_index(probs[i], CLASSNUM);
+          float prob = probs[i][class];
+          if(prob > thresh){
+            // write the result to the results file
+            char result[256] = "";
+            strcat(result, in_file->d_name);
+            for(j = 0; j < CLASSNUM; ++j)
+            {
+              strcat(result, ",");
+              char output[50];
+              snprintf(output, 50, "%f", probs[i][j]);
+              strcat(result, output);
+            }
+            strcat(result, "\n");
+            fputs(result, results_file);
+          }
+        }
+        //draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, CLASSNUM);
+        //show_image(im, "predictions");
+
+        //show_image(sized, "resized");
+        free_image(im);
+        free_image(sized);
+      }
+
+      fclose(results_file);
 }
 
 /*
@@ -430,7 +539,9 @@ void run_yolo(int argc, char **argv)
     char *cfg = argv[3];
     char *weights = (argc > 4) ? argv[4] : 0;
     char *filename = (argc > 5) ? argv[5]: 0;
-    if(0==strcmp(argv[2], "test")) test_yolo(cfg, weights, filename, thresh);
+    printf("Is directory: %d\n", isDirectory(filename));
+    if(0==strcmp(argv[2], "test") && 0==isDirectory(filename)) test_yolofile(cfg, weights, filename, thresh);
+    else if(0==strcmp(argv[2], "test") && 0!=isDirectory(filename)) test_yolodir(cfg, weights, filename, thresh);
     else if(0==strcmp(argv[2], "train")) train_yolo(cfg, weights);
     else if(0==strcmp(argv[2], "valid")) validate_yolo(cfg, weights);
     else if(0==strcmp(argv[2], "recall")) validate_yolo_recall(cfg, weights);

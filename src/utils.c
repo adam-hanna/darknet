@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <float.h>
 #include <limits.h>
@@ -424,7 +425,7 @@ float mag_array(float *a, int n)
     int i;
     float sum = 0;
     for(i = 0; i < n; ++i){
-        sum += a[i]*a[i];   
+        sum += a[i]*a[i];
     }
     return sqrt(sum);
 }
@@ -502,3 +503,11 @@ float **one_hot_encode(float *a, int n, int k)
     return t;
 }
 
+// http://stackoverflow.com/a/4553053/3512709
+int isDirectory(const char *path)
+{
+   struct stat statbuf;
+   if (stat(path, &statbuf) != 0)
+       return 0;
+   return S_ISDIR(statbuf.st_mode);
+}
