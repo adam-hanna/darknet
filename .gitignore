@@ -15,7 +15,10 @@ decaf/
 submission/
 cfg/
 darknet
-.bulkResults.csv
+
+bulkResults.csv
+darknet.conv.weights
+darknet.conv.weights
 
 # OS Generated #
 .DS_Store*
