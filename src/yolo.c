@@ -432,6 +432,7 @@ void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
         if (!strcmp (in_file->d_name, ".."))
             continue;
 
+        int iNumFound = 0;
         char buff2[256];
         char *input2 = buff2;
         char myFile[256] = "";
@@ -451,6 +452,7 @@ void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
           int class = max_index(probs[i], CLASSNUM);
           float prob = probs[i][class];
           if(prob > thresh){
+            iNumFound++;
             // write the result to the results file
             char result[256] = "";
             strcat(result, in_file->d_name);
@@ -464,6 +466,17 @@ void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
             strcat(result, "\n");
             fputs(result, results_file);
           }
+        }
+
+        if (!iNumFound){
+          char result[256] = "";
+          strcat(result, in_file->d_name);
+          for(j = 0; j < CLASSNUM; ++j)
+          {
+            strcat(result, ",0");
+          }
+          strcat(result, "\n");
+          fputs(result, results_file);
         }
         //draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, CLASSNUM);
         //show_image(im, "predictions");
