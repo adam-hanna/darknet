@@ -47,5 +47,6 @@ float find_float_arg(int argc, char **argv, char *arg, float def);
 int find_arg(int argc, char* argv[], char *arg);
 char *find_char_arg(int argc, char **argv, char *arg, char *def);
 int isDirectory(const char *path);
+char *replace(const char *src, const char *from, const char *to);
 
 #endif

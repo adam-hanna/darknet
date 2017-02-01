@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "parser.h"
 #include "box.h"
+#include "image.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -452,7 +453,6 @@ void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
           int class = max_index(probs[i], CLASSNUM);
           float prob = probs[i][class];
           if(prob > thresh){
-            iNumFound++;
             // write the result to the results file
             char result[256] = "";
             strcat(result, in_file->d_name);
@@ -465,6 +465,34 @@ void test_yolodir(char *cfgfile, char *weightfile, char *dir, float thresh)
             }
             strcat(result, "\n");
             fputs(result, results_file);
+
+            // now draw the clipped image
+            char DEST[1024];
+
+            char *newName;
+            newName = replace(in_file->d_name, ".jpg", "");
+
+            snprintf(DEST, sizeof DEST, "results/clip/result_%d_%s", (iNumFound + 1), newName);
+
+            box b = boxes[i];
+            int left  = (b.x-b.w/2.)*im.w;
+            int right = (b.x+b.w/2.)*im.w;
+            int top   = (b.y-b.h/2.)*im.h;
+            int bot   = (b.y+b.h/2.)*im.h;
+
+            if(left < 0) left = 0;
+            if(right > im.w-1) right = im.w-1;
+            if(top < 0) top = 0;
+            if(bot > im.h-1) bot = im.h-1;
+
+            int width =  right - left;
+            int height = bot - top;
+
+            image clippedIm = crop_image(im, left, top, width, height);
+            save_image_jpg(clippedIm, DEST);
+            free_image(clippedIm);
+
+            ++iNumFound;
           }
         }
 

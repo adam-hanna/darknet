@@ -19,6 +19,7 @@ darknet
 bulkResults.csv
 darknet.conv.weights
 extraction.conv.weights
+*.weights
 
 # OS Generated #
 .DS_Store*

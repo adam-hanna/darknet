@@ -9,9 +9,7 @@ For questions or issues please use the [Google Group](https://groups.google.com/
 
 #About This Fork#
 
-![Yolo logo](http://guanghan.info/blog/en/wp-content/uploads/2015/12/images-40.jpg)
-
-Added ability to read a directory and write results to a csv file.
+Added ability to read a directory and write results to a csv file. Reading from a directory also crops images and writes to a results/clip subdirectory
 
 #DEMOS of YOLO trained with our own data#
 Yield Sign: [https://youtu.be/5DJVLV3P47E](https://youtu.be/5DJVLV3P47E)
